@@ -10,7 +10,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         email = config("EMAIL_HOST_USER")
         password = config("PASSWORD_FOR_SUPER_USER")
-        user = User.objects.create_superuser(
-            email=email,
-            password=password
-        )
+        User.objects.create_superuser(email=email, password=password)
