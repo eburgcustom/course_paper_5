@@ -23,7 +23,7 @@ class Habit(models.Model):
     )
     periodicity = models.PositiveSmallIntegerField(default=1, verbose_name="Периодичность в днях")
     reward = models.CharField(max_length=255, blank=True, null=True, verbose_name="Вознаграждение")
-    duration = models.PositiveSmallIntegerField(verbose_name="Время на выполнение в секундах")
+    duration = models.DurationField(verbose_name="Время на выполнение")
     is_public = models.BooleanField(default=False, verbose_name="Признак публичности")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
@@ -41,7 +41,8 @@ class Habit(models.Model):
         if self.related_habit and self.reward:
             raise ValidationError(_("Нельзя указывать связанную привычку и вознаграждение одновременно"))
 
-        if self.duration > 120:
+        # Проверяем что длительность не превышает 120 секунд
+        if self.duration.total_seconds() > 120:
             raise ValidationError(_("Время выполнения привычки не может превышать 120 секунд"))
 
         if self.related_habit and not self.related_habit.is_pleasant:

@@ -5,13 +5,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
-from .serializers import UserRegistrationSerializer, UserProfileSerializer
+from .serializers import UserRegistrationSerializer, UserProfileSerializer, CustomTokenObtainPairSerializer
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Кастомный view для получения JWT токена."""
-
-    pass
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class UserRegistrationView(generics.CreateAPIView):

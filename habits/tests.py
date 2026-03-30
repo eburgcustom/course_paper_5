@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import time, timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -21,19 +21,19 @@ class HabitModelTest(TestCase):
     def test_habit_creation(self):
         """Тест создания привычки."""
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=timedelta(seconds=60)
         )
         self.assertEqual(habit.user, self.user)
         self.assertEqual(habit.place, "дома")
         self.assertEqual(habit.action, "делать зарядку")
-        self.assertEqual(habit.duration, 60)
+        self.assertEqual(habit.duration.total_seconds(), 60)
         self.assertFalse(habit.is_pleasant)
         self.assertFalse(habit.is_public)
 
     def test_habit_str(self):
         """Тест строкового представления привычки."""
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=timedelta(seconds=60)
         )
         expected = "Я буду делать зарядку в 10:00:00 в дома"
         self.assertEqual(str(habit), expected)
@@ -41,7 +41,12 @@ class HabitModelTest(TestCase):
     def test_validation_related_habit_and_reward(self):
         """Тест валидации: нельзя указывать связанную привычку и вознаграждение."""
         pleasant_habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(11, 0), action="смотреть сериал", is_pleasant=True, duration=30
+            user=self.user,
+            place="дома",
+            time=time(11, 0),
+            action="смотреть сериал",
+            is_pleasant=True,
+            duration=timedelta(seconds=30)
         )
 
         habit = Habit(
@@ -51,7 +56,7 @@ class HabitModelTest(TestCase):
             action="делать зарядку",
             related_habit=pleasant_habit,
             reward="шоколадка",
-            duration=60,
+            duration=timedelta(seconds=60),
         )
 
         with self.assertRaises(Exception):
@@ -59,7 +64,13 @@ class HabitModelTest(TestCase):
 
     def test_validation_duration_limit(self):
         """Тест валидации: время выполнения не более 120 секунд."""
-        habit = Habit(user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=130)
+        habit = Habit(
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=130)
+        )
 
         with self.assertRaises(Exception):
             habit.clean()
@@ -67,7 +78,12 @@ class HabitModelTest(TestCase):
     def test_validation_related_habit_must_be_pleasant(self):
         """Тест валидации: связанная привычка должна быть приятной."""
         useful_habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(9, 0), action="читать книгу", is_pleasant=False, duration=45
+            user=self.user,
+            place="дома",
+            time=time(9, 0),
+            action="читать книгу",
+            is_pleasant=False,
+            duration=timedelta(seconds=45)
         )
 
         habit = Habit(
@@ -76,7 +92,7 @@ class HabitModelTest(TestCase):
             time=time(10, 0),
             action="делать зарядку",
             related_habit=useful_habit,
-            duration=60,
+            duration=timedelta(seconds=60),
         )
 
         with self.assertRaises(Exception):
@@ -91,7 +107,7 @@ class HabitModelTest(TestCase):
             action="смотреть сериал",
             is_pleasant=True,
             reward="шоколадка",
-            duration=30,
+            duration=timedelta(seconds=30),
         )
 
         with self.assertRaises(Exception):
@@ -100,7 +116,12 @@ class HabitModelTest(TestCase):
     def test_validation_periodicity_limits(self):
         """Тест валидации: периодичность от 1 до 7 дней."""
         habit = Habit(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", periodicity=8, duration=60
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            periodicity=8,
+            duration=timedelta(seconds=60)
         )
 
         with self.assertRaises(Exception):
@@ -119,7 +140,7 @@ class HabitAPITest(APITestCase):
             "place": "дома",
             "time": "10:00:00",
             "action": "делать зарядку",
-            "duration": 60,
+            "duration": "00:01:00",
             "periodicity": 1,
         }
 
@@ -136,7 +157,13 @@ class HabitAPITest(APITestCase):
 
     def test_list_habits(self):
         """Тест получения списка привычек."""
-        Habit.objects.create(user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60)
+        Habit.objects.create(
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
+        )
 
         url = reverse("habit-list-create")
         response = self.client.get(url)
@@ -146,7 +173,11 @@ class HabitAPITest(APITestCase):
     def test_retrieve_habit(self):
         """Тест получения одной привычки."""
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
         )
 
         url = reverse("habit-detail", kwargs={"pk": habit.pk})
@@ -157,22 +188,30 @@ class HabitAPITest(APITestCase):
     def test_update_habit(self):
         """Тест обновления привычки."""
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
         )
 
         url = reverse("habit-detail", kwargs={"pk": habit.pk})
-        data = {"action": "делать йогу", "duration": 90}
+        data = {"action": "делать йогу", "duration": "00:01:30"}
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         habit.refresh_from_db()
         self.assertEqual(habit.action, "делать йогу")
-        self.assertEqual(habit.duration, 90)
+        self.assertEqual(habit.duration.total_seconds(), 90)
 
     def test_delete_habit(self):
         """Тест удаления привычки."""
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
         )
 
         url = reverse("habit-detail", kwargs={"pk": habit.pk})
@@ -185,7 +224,11 @@ class HabitAPITest(APITestCase):
         other_user = User.objects.create_user(email="other@example.com", password="otherpass123")
 
         habit = Habit.objects.create(
-            user=other_user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=other_user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
         )
 
         url = reverse("habit-detail", kwargs={"pk": habit.pk})
@@ -198,11 +241,21 @@ class HabitAPITest(APITestCase):
         other_user = User.objects.create_user(email="other@example.com", password="otherpass123")
 
         Habit.objects.create(
-            user=other_user, place="дома", time=time(10, 0), action="делать зарядку", duration=60, is_public=True
+            user=other_user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60),
+            is_public=True
         )
 
         Habit.objects.create(
-            user=other_user, place="улица", time=time(11, 0), action="бегать", duration=30, is_public=False
+            user=other_user,
+            place="улица",
+            time=time(11, 0),
+            action="бегать",
+            duration=timedelta(seconds=30),
+            is_public=False
         )
 
         url = reverse("public-habits")
@@ -215,7 +268,11 @@ class HabitAPITest(APITestCase):
         # Создаем 10 привычек
         for i in range(10):
             Habit.objects.create(
-                user=self.user, place="дома", time=time(10 + i, 0), action=f"делать зарядку {i}", duration=60
+                user=self.user,
+                place="дома",
+                time=time(10 + i, 0),
+                action=f"делать зарядку {i}",
+                duration=timedelta(seconds=60)
             )
 
         url = reverse("habit-list-create")
@@ -230,7 +287,11 @@ class HabitAPITest(APITestCase):
         mock_send.return_value = True
 
         habit = Habit.objects.create(
-            user=self.user, place="дома", time=time(10, 0), action="делать зарядку", duration=60
+            user=self.user,
+            place="дома",
+            time=time(10, 0),
+            action="делать зарядку",
+            duration=timedelta(seconds=60)
         )
 
         # Устанавливаем chat_id пользователю

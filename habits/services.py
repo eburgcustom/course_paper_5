@@ -54,7 +54,7 @@ class TelegramBot:
             f"📍 Место: {habit.place}\n"
             f"⏰ Время: {habit.time}\n"
             f"🎯 Действие: {habit.action}\n"
-            f"⏱️ Время на выполнение: {habit.duration} сек.\n"
+            f"⏱️ Время на выполнение: {habit.duration.total_seconds():.0f} сек.\n"
         )
 
         if habit.related_habit:

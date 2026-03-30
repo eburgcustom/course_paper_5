@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG")
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -122,8 +122,8 @@ REST_FRAMEWORK = {
 
 # Настройки срока действия токенов
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=config("JWT_ACCESS_TOKEN_LIFETIME", default=15, cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config("JWT_REFRESH_TOKEN_LIFETIME", default=1, cast=int)),
 }
 
 # Internationalization
@@ -151,10 +151,16 @@ STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="pk_test_123")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="sk_test_123")
 
 # URL-адрес брокера сообщений
-CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+CELERY_BROKER_URL = config(
+    "CELERY_BROKER_URL",
+    default=config("REDIS_URL", default="redis://localhost:6379/0")
+)
 
 # URL-адрес брокера результатов, также Redis
-CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND")
+CELERY_RESULT_BACKEND = config(
+    "CELERY_RESULT_BACKEND",
+    default=config("REDIS_URL", default="redis://localhost:6379/0")
+)
 
 # Часовой пояс для работы Celery
 CELERY_TIMEZONE = TIME_ZONE
@@ -177,7 +183,7 @@ CELERY_BEAT_SCHEDULE = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/0",
+        "LOCATION": config("REDIS_URL", default="redis://localhost:6379/0"),
     }
 }
 
@@ -186,9 +192,9 @@ TELEGRAM_BOT_URL = "https://api.telegram.org/bot"
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
-
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:8000,http://127.0.0.1:8000",
+    cast=lambda v: [s.strip() for s in v.split(",")]
+)
 CORS_ALLOW_CREDENTIALS = True

@@ -29,14 +29,15 @@ class HabitSerializer(serializers.ModelSerializer):
         """Валидация данных сериализатора."""
         related_habit = data.get("related_habit")
         reward = data.get("reward")
-        duration = data.get("duration", 0)
+        duration = data.get("duration")
         is_pleasant = data.get("is_pleasant", False)
         periodicity = data.get("periodicity", 1)
 
         if related_habit and reward:
             raise serializers.ValidationError("Нельзя указывать связанную привычку и вознаграждение одновременно")
 
-        if duration > 120:
+        # Проверяем DurationField
+        if duration and duration.total_seconds() > 120:
             raise serializers.ValidationError("Время выполнения привычки не может превышать 120 секунд")
 
         if related_habit and not related_habit.is_pleasant:
