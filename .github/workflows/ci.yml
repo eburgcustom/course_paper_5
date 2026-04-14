@@ -146,6 +146,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SSH_KEY_PASSPHRASE }}
           script: |
             cd course_paper_5
             git pull origin develop
