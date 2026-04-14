@@ -97,6 +97,8 @@ jobs:
           echo "CELERY_RESULT_BACKEND_DOCKER=redis://redis:6379/0" >> .env
           echo "SECRET_KEY=test-secret-key-for-ci" >> .env
           echo "DEBUG=True" >> .env
+          echo "JWT_ACCESS_TOKEN_LIFETIME=15" >> .env
+          echo "JWT_REFRESH_TOKEN_LIFETIME=1440" >> .env
           
           docker compose -f docker-compose.yml up -d db redis
           sleep 10
