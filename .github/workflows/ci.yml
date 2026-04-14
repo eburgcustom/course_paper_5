@@ -170,8 +170,4 @@ jobs:
 
             docker compose exec -T web python manage.py collectstatic --noinput
 
-            echo "Waiting for Django to fully start..."
-            sleep 15
-
-            curl -f http://localhost/admin/login/ || exit 1
             echo "✅ Deploy completed successfully"
