@@ -170,5 +170,5 @@ jobs:
             
             docker compose exec -T web python manage.py collectstatic --noinput
             
-            curl -f http://localhost:8000/admin/login/ || exit 1
+            curl -f http://localhost/admin/login/ || exit 1
             echo "✅ Deploy completed successfully"
