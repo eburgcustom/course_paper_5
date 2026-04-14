@@ -126,7 +126,7 @@ jobs:
           docker compose build
 
       - name: Upload Docker images
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-images
           path: |
