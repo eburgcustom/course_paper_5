@@ -141,26 +141,34 @@ jobs:
 
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
           script: |
+            set -e  # Останавливать скрипт при любой ошибке
             cd course_paper_5
-            git pull origin develop
+
+            git fetch origin develop
+            git reset --hard origin/develop
+            
             docker compose down
             docker compose up -d --build
             
-            # Wait for services to be ready
-            sleep 15
+            echo "Waiting for services..."
+            for i in {1..60}; do
+              if docker compose ps | grep -q "healthy\|Up"; then
+                sleep 10
+                break
+              fi
+              sleep 2
+            done
             
-            # Run migrations
             docker compose run --rm web python manage.py migrate
             
-            # Collect static files
-            docker compose exec web python manage.py collectstatic --noinput
+            docker compose exec -T web python manage.py collectstatic --noinput
             
-            # Check service health
-            curl -f http://localhost/ || exit 1
+            curl -f http://localhost:8000/admin/login/ || exit 1
+            echo "✅ Deploy completed successfully"
