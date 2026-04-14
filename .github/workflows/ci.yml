@@ -160,15 +160,18 @@ jobs:
             echo "Waiting for services..."
             for i in {1..60}; do
               if docker compose ps | grep -q "healthy\|Up"; then
-                sleep 10
+                sleep 20
                 break
               fi
               sleep 2
             done
-            
+
             docker compose run --rm web python manage.py migrate
-            
+
             docker compose exec -T web python manage.py collectstatic --noinput
-            
+
+            echo "Waiting for Django to fully start..."
+            sleep 15
+
             curl -f http://localhost/admin/login/ || exit 1
             echo "✅ Deploy completed successfully"
