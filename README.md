@@ -212,6 +212,82 @@ poetry run flake8
 poetry run black .
 ```
 
+## 🐳 Docker
+
+### Запуск с Docker Compose
+```bash
+# Копирование примера .env файла
+cp .env_example .env
+
+# Настройка переменных окружения в .env
+nano .env
+
+# Запуск всех сервисов
+docker compose up -d --build
+
+# Просмотр логов
+docker compose logs -f
+
+# Остановка сервисов
+docker compose down
+```
+
+### Сервисы Docker Compose
+- **web** - Django приложение
+- **db** - PostgreSQL база данных
+- **redis** - Redis для кэша и брокера сообщений
+- **celery** - Celery worker для фоновой обработки
+- **celery-beat** - Celery Beat для планирования задач
+- **nginx** - Nginx reverse proxy
+
+### Переменные окружения для Docker
+В `.env` файле дополнительно укажите:
+```env
+# Для Docker
+CELERY_BROKER_URL_DOCKER=redis://redis:6379/0
+CELERY_RESULT_BACKEND_DOCKER=redis://redis:6379/0
+
+# JWT токены
+JWT_ACCESS_TOKEN_LIFETIME=15
+JWT_REFRESH_TOKEN_LIFETIME=1440
+
+# CORS
+CORS_ALLOWED_ORIGINS=указать разрешенные адраса через запятую
+(пример: http://localhost:8000,http://127.0.0.1:8000)
+
+# Stripe (опционально)
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+```
+
+## 🚀 CI/CD
+
+### GitHub Actions Workflow
+Проект использует GitHub Actions для автоматического тестирования и деплоя.
+
+#### Пайплайн включает:
+1. **Test** - запуск тестов с Poetry
+2. **Docker Test** - тестирование в Docker окружении
+3. **Build** - сборка Docker образов
+4. **Deploy** - деплой на production сервер (только для ветки `develop`)
+
+#### Переменные Secrets
+Для работы CI/CD нужно добавить в GitHub Secrets:
+- `SERVER_IP` - IP адрес сервера
+- `SERVER_USER` - имя пользователя SSH
+- `SSH_KEY` - приватный SSH ключ
+- `SSH_KEY_PASSPHRASE` - парольная фраза для SSH ключа (опционально)
+
+#### Деплой
+При пуше:
+1. Запускаются все тесты
+2. Строятся Docker образы
+3. Через SSH подключается к серверу
+4. Обновляется код из git
+5. Перезапускаются контейнеры
+6. Применяются миграции
+7. Собираются статические файлы
+
 ## 📊 Модели данных
 
 ### User
