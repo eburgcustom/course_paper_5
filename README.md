@@ -212,6 +212,274 @@ poetry run flake8
 poetry run black .
 ```
 
+## 🐳 Docker
+
+### Запуск с Docker Compose
+```bash
+# Копирование примера .env файла
+cp .env_example .env
+
+# Настройка переменных окружения в .env
+nano .env
+
+# Запуск всех сервисов
+docker compose up -d --build
+
+# Просмотр логов
+docker compose logs -f
+
+# Остановка сервисов
+docker compose down
+```
+
+### Сервисы Docker Compose
+- **web** - Django приложение
+- **db** - PostgreSQL база данных
+- **redis** - Redis для кэша и брокера сообщений
+- **celery** - Celery worker для фоновой обработки
+- **celery-beat** - Celery Beat для планирования задач
+- **nginx** - Nginx reverse proxy
+
+### Переменные окружения для Docker
+В `.env` файле дополнительно укажите:
+```env
+# Для Docker
+CELERY_BROKER_URL_DOCKER=redis://redis:6379/0
+CELERY_RESULT_BACKEND_DOCKER=redis://redis:6379/0
+
+# JWT токены
+JWT_ACCESS_TOKEN_LIFETIME=15
+JWT_REFRESH_TOKEN_LIFETIME=1440
+
+# CORS
+CORS_ALLOWED_ORIGINS=указать разрешенные адраса через запятую
+(пример: http://localhost:8000,http://127.0.0.1:8000)
+
+# Stripe (опционально)
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+```
+
+## 🌐 Развернутое приложение
+
+**Production сервер:** http://178.154.211.159/
+
+## 🚀 CI/CD
+
+### GitHub Actions Workflow
+Проект использует GitHub Actions для автоматического тестирования и деплоя.
+
+#### Пайплайн включает:
+1. **Test** - запуск тестов с Poetry
+2. **Docker Test** - тестирование в Docker окружении
+3. **Build** - сборка Docker образов
+4. **Deploy** - деплой на production сервер (только для ветки `develop`)
+
+#### Переменные Secrets
+Для работы CI/CD нужно добавить в GitHub Secrets:
+- `SERVER_IP` - IP адрес сервера
+- `SERVER_USER` - имя пользователя SSH
+- `SSH_KEY` - приватный SSH ключ
+- `SSH_KEY_PASSPHRASE` - парольная фраза для SSH ключа (опционально)
+
+#### Деплой
+При пуше в ветку `develop`:
+1. Запускаются все тесты
+2. Строятся Docker образы
+3. Через SSH подключается к серверу
+4. Обновляется код из git
+5. Перезапускаются контейнеры
+6. Применяются миграции
+7. Собираются статические файлы
+
+## 🖥️ Настройка сервера
+
+### 1. Подготовка сервера (Ubuntu/Debian)
+
+#### Установка Docker и Docker Compose
+```bash
+# Обновление системы
+sudo apt update && sudo apt upgrade -y
+
+# Установка Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Добавление пользователя в группу docker
+sudo usermod -aG docker $USER
+
+# Установка Docker Compose
+sudo apt install docker-compose-plugin -y
+
+# Проверка установки
+docker --version
+docker compose version
+```
+
+#### Настройка Firewall
+```bash
+# Разрешение SSH
+sudo ufw allow 22/tcp
+
+# Разрешение HTTP
+sudo ufw allow 80/tcp
+
+# Разрешение HTTPS (если нужен)
+sudo ufw allow 443/tcp
+
+# Включение firewall
+sudo ufw enable
+```
+
+### 2. Настройка SSH доступа
+
+#### Генерация SSH ключей (на локальной машине)
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+#### Копирование ключа на сервер
+```bash
+ssh-copy-id user@server_ip
+```
+
+или вручную:
+```bash
+cat ~/.ssh/id_ed25519.pub | ssh user@server_ip "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+```
+
+#### Тестирование SSH подключения
+```bash
+ssh user@server_ip
+```
+
+### 3. Клонирование репозитория на сервере
+```bash
+# Клонирование репозитория
+git clone <repository-url>
+cd course_paper_5
+
+# Создание .env файла из примера
+cp .env_example .env
+
+# Настройка переменных окружения
+nano .env
+```
+
+#### Обязательные переменные в .env:
+```env
+# Django
+SECRET_KEY=your-very-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=178.154.211.159,localhost
+
+# База данных
+DATABASE_NAME=course_paper_5
+DATABASE_USER=postgres
+DATABASE_PASSWORD=strong_password_here
+DATABASE_HOST=db
+DATABASE_PORT=5432
+
+# Redis
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+CELERY_BROKER_URL_DOCKER=redis://redis:6379/0
+CELERY_RESULT_BACKEND_DOCKER=redis://redis:6379/0
+
+# JWT токены
+JWT_ACCESS_TOKEN_LIFETIME=15
+JWT_REFRESH_TOKEN_LIFETIME=1440
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://178.154.211.159
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+
+# Stripe (опционально)
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+```
+
+### 4. Ручной деплой на сервер
+```bash
+# Переход в директорию проекта
+cd course_paper_5
+
+# Получение последних изменений
+git fetch origin develop
+git reset --hard origin/develop
+
+# Остановка старых контейнеров
+docker compose down
+
+# Запуск новых контейнеров
+docker compose up -d --build
+
+# Применение миграций
+docker compose run --rm web python manage.py migrate
+
+# Сборка статических файлов
+docker compose exec -T web python manage.py collectstatic --noinput
+
+# Проверка статуса контейнеров
+docker compose ps
+
+# Просмотр логов
+docker compose logs -f
+```
+
+### 5. Мониторинг и обслуживание
+
+#### Просмотр логов
+```bash
+# Все сервисы
+docker compose logs -f
+
+# Конкретный сервис
+docker compose logs -f web
+docker compose logs -f celery
+docker compose logs -f nginx
+```
+
+#### Перезапуск сервисов
+```bash
+# Все сервисы
+docker compose restart
+
+# Конкретный сервис
+docker compose restart web
+```
+
+#### Обновление кода
+```bash
+git pull
+docker compose up -d --build
+docker compose run --rm web python manage.py migrate
+docker compose exec -T web python manage.py collectstatic --noinput
+```
+
+#### Резервное копирование базы данных
+```bash
+# Создание бэкапа
+docker compose exec db pg_dump -U postgres course_paper_5 > backup.sql
+
+# Восстановление из бэкапа
+docker compose exec -T db psql -U postgres course_paper_5 < backup.sql
+```
+
+#### Очистка неиспользуемых ресурсов Docker
+```bash
+# Удаление остановленных контейнеров
+docker container prune
+
+# Удаление неиспользуемых образов
+docker image prune -a
+
+# Удаление неиспользуемых volumes
+docker volume prune
+```
+
 ## 📊 Модели данных
 
 ### User
